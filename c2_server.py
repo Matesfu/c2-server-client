@@ -17,12 +17,29 @@ class HostRecord(TypedDict):
     last_seen: Optional[str]
     command: Optional[str]
 main_console = "Command (type 'exit to stop:) >"
+
 def get_user_input():
-    global user_input
+    global server_command
+    # Split input by whitespace into a list of words
     while True:
-        user_input = input(f"{main_console}")
-        if user_input.lower() == "exit":
+        server_command = input(f"{main_console}")
+        parts = server_command.split()
+        cmd = parts[0].lower()
+        if cmd.lower() == "exit":
             break
+        elif cmd.lower() == "agent":
+            if parts[1].lower() == "--list":
+                get_agent()
+            elif parts[1].lower() == "--hostname":
+                if len(parts[3].lower())  > 0:
+                    get_agent(part[3])
+        elif cmd.lower() == "quit":
+            get_quit()
+        else:
+            get_cmd_channel() 
+             
+
+
 
 #Disable all the logs from the http.server
 class NoLogRequestHandler(SimpleHTTPRequestHandler):
@@ -152,7 +169,7 @@ if __name__ == "__main__":
     try:
         port = 8000
         server_address = ("", port)
-        user_input = ""
+        server_command = ""
         user_input = ConcurrentDictionary()
 
         #create a an HTTP server with the custom request handler
