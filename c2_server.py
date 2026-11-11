@@ -9,6 +9,7 @@ from datetime import timezone
 import secrets
 import string
 import hmac
+from components import component
 
 # 1. Define the Host Record Structure (Type Hinting + Default Factory)
 class HostRecord(TypedDict):
@@ -16,29 +17,19 @@ class HostRecord(TypedDict):
     status: str
     last_seen: Optional[str]
     command: Optional[str]
-main_console = "Command (type 'exit to stop:) >"
+main_console = "Command (type 'exit to stop:) > "
 
-def get_user_input():
+def get_user_input(user_input):
     global server_command
-    # Split input by whitespace into a list of words
     while True:
-        server_command = input(f"{main_console}")
-        parts = server_command.split()
-        cmd = parts[0].lower()
-        if cmd.lower() == "exit":
-            break
-        elif cmd.lower() == "agent":
-            if parts[1].lower() == "--list":
-                get_agent()
-            elif parts[1].lower() == "--hostname":
-                if len(parts[3].lower())  > 0:
-                    get_agent(part[3])
-        elif cmd.lower() == "quit":
-            get_quit()
-        else:
-            get_cmd_channel() 
-             
+        
+        server_command = input(main_console).strip()
 
+        if not component.handle_command(server_command, user_input):
+            print("Shutting down...")
+            break
+        server_command = ""
+             
 
 
 #Disable all the logs from the http.server
@@ -180,7 +171,7 @@ if __name__ == "__main__":
         thread.start()
 
         #start the user input loop
-        get_user_input()
+        get_user_input(user_input)
 
         #stop the server when the user input loop is existed
         httpd.shutdown()
