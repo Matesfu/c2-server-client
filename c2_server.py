@@ -62,7 +62,7 @@ class MyRequestHandler(NoLogRequestHandler):
 
     def do_POST(self):
         # 1. Extract and strip whitespace from headers
-        hostname = self.headers.get("hostname", "").strip()
+        hostname = self.headers.get("host-name", "").strip()
         auth_header = self.headers.get("Authorization", "").strip()
 
         # Optional: Strip 'Bearer ' prefix if you sent 'Bearer <uuid>' earlier
