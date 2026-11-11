@@ -87,7 +87,7 @@ class MyRequestHandler(NoLogRequestHandler):
         #if the client send text or json
         body_string = body_byte.decode('utf-8')
         if body_string.strip():
-            print(f"\nRecieved POST payload: {body_string}\n{main_console}")
+            print(f"\nRecieved POST payload from Hostname {hostname}: {body_string}\n{main_console}")
         self.collective_handle(hostname)
         
 
